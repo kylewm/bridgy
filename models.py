@@ -752,3 +752,6 @@ class SyndicatedPost(ndb.Model):
     r = cls(parent=source.key, original=original, syndication=syndication)
     r.put()
     return r
+
+
+class SourcePrep(ndb.Model):

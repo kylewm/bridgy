@@ -82,12 +82,14 @@ class Twitter(models.Source):
 class AddTwitter(oauth_twitter.CallbackHandler, util.Handler):
   def finish(self, auth_entity, state=None):
     source = self.maybe_add_or_delete_source(Twitter, auth_entity, state)
-    if source is not None and state == 'listen' and 'publish' in source.features:
+    feature = self.decode_state_parameter(state).get('feature')
+    if source is not None and feature == 'listen' and 'publish' in source.features:
       # if we were already signed up for publish, we had a read/write token.
       # when we sign up for listen, we use x_auth_access_type=read to request
       # just read permissions, which *demotes* us to a read only token! ugh.
       source.features.remove('publish')
       source.put()
+
 
 class StartHandler(util.Handler):
   """Custom OAuth start handler so we can use access_type=read for state=listen.
@@ -97,11 +99,17 @@ class StartHandler(util.Handler):
   https://dev.twitter.com/docs/api/1/post/oauth/request_token
   """
   def post(self):
+    state = self.request.get('state')
+    if not state:
+      state = self.construct_state_param(state)
+      self.request.GET['state'] = state
+    feature = self.decode_state_parameter(state).get('feature')
+    if not state:
+      self.abort(400, 'Missing or malformed "state" parameter: %s' % state)
     # pass explicit 'write' instead of None for publish so that oauth-dropins
     # (and tweepy) don't use signin_with_twitter ie /authorize. this works
     # around a twitter API bug: https://dev.twitter.com/discussions/21281
-    access_type = ('read' if util.get_required_param(self, 'state') == 'listen'
-                   else 'write')
+    access_type = 'read' if feature == 'listen' else 'write'
     handler = oauth_twitter.StartHandler.to(
       '/twitter/add', access_type=access_type)(self.request, self.response)
     return handler.post()
