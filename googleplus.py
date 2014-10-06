@@ -83,7 +83,7 @@ class StartHandler(oauth_googleplus.StartHandler, util.Handler):
   """
   def redirect_url(self, state=None):
     return super(StartHandler, self).redirect_url(
-      self.construct_state_param(state))
+      self.construct_state_param_for_add(state))
 
 
 class OAuthCallback(util.Handler):
@@ -98,7 +98,7 @@ class OAuthCallback(util.Handler):
     if not state:
       # state doesn't currently come through for G+. not sure why. doesn't
       # matter for now since we don't plan to implement publish for G+.
-      state = 'listen'
+      state = self.construct_state_param_for_add(feature='listen')
     auth_entity = ndb.Key(urlsafe=auth_entity_str_key).get()
     self.maybe_add_or_delete_source(GooglePlusPage, auth_entity, state)
 

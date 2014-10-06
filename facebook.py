@@ -195,12 +195,12 @@ class FacebookPage(models.Source):
     return super(FacebookPage, self).canonicalize_syndication_url(url)
 
 
-class StartHandler(oauth_facebook.StartHandler, util.Handler):
+class StartFacebookPage(oauth_facebook.StartHandler, util.Handler):
   """Handler to start the Facebook authentication process
   """
   def redirect_url(self, state=None):
-    return super(StartHandler, self).redirect_url(
-      self.construct_state_param(state))
+    return super(StartFacebookPage, self).redirect_url(
+      self.construct_state_param_for_add(state))
 
 
 class AddFacebookPage(oauth_facebook.CallbackHandler, util.Handler):
@@ -210,7 +210,7 @@ class AddFacebookPage(oauth_facebook.CallbackHandler, util.Handler):
 
 application = webapp2.WSGIApplication([
     # OAuth scopes are set in listen.html and publish.html
-    ('/facebook/start', StartHandler.to('/facebook/add')),
+    ('/facebook/start', StartFacebookPage.to('/facebook/add')),
     ('/facebook/add', AddFacebookPage),
     ('/facebook/delete/finish', oauth_facebook.CallbackHandler.to('/delete/finish')),
     ], debug=appengine_config.DEBUG)

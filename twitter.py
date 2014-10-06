@@ -92,25 +92,29 @@ class AddTwitter(oauth_twitter.CallbackHandler, util.Handler):
 
 
 class StartHandler(util.Handler):
-  """Custom OAuth start handler so we can use access_type=read for state=listen.
+  """Custom OAuth start handler so we can use access_type=read for
+  state=listen.
 
   Tweepy converts access_type to x_auth_access_type for Twitter's
   oauth/request_token endpoint. Details:
   https://dev.twitter.com/docs/api/1/post/oauth/request_token
   """
   def post(self):
-    state = self.request.get('state')
-    if not state:
-      state = self.construct_state_param(state)
-      self.request.GET['state'] = state
-    feature = self.decode_state_parameter(state).get('feature')
-    if not state:
-      self.abort(400, 'Missing or malformed "state" parameter: %s' % state)
+    class DelegateHandler(oauth_twitter.StartHandler, util.Handler):
+      """Delegate for the actual authentication processing
+      """
+      def redirect_url(self, state=None):
+        state = self.construct_state_param_for_add(state)
+        logging.debug('REDIRECTING WITH STATE %s' % state)
+        return super(DelegateHandler, self).redirect_url(state)
+
+
     # pass explicit 'write' instead of None for publish so that oauth-dropins
     # (and tweepy) don't use signin_with_twitter ie /authorize. this works
     # around a twitter API bug: https://dev.twitter.com/discussions/21281
-    access_type = 'read' if feature == 'listen' else 'write'
-    handler = oauth_twitter.StartHandler.to(
+    access_type = ('read' if util.get_required_param(self, 'feature')
+                   == 'listen' else 'write')
+    handler = DelegateHandler.to(
       '/twitter/add', access_type=access_type)(self.request, self.response)
     return handler.post()
 

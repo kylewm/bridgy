@@ -333,7 +333,7 @@ class DeleteStartHandler(util.Handler):
     key = ndb.Key(urlsafe=util.get_required_param(self, 'key'))
     module = self.OAUTH_MODULES[key.kind()]
     feature = util.get_required_param(self, 'feature')
-    state = util.encode_state_parameter({
+    state = self.encode_state_parameter({
       'operation': 'delete',
       'feature': feature,
       'source': key.urlsafe(),
@@ -364,8 +364,9 @@ class DeleteFinishHandler(util.Handler):
       self.redirect('/')
       return
 
-    parts = util.decode_state_parameter(util.get_required_param(self, 'state'))
-    if not (isinstance(parts, dict) and 'feature' in parts and 'source' in parts):
+    parts = self.decode_state_parameter(util.get_required_param(self, 'state'))
+    if (not isinstance(parts, dict) or 'feature' not in parts
+        or 'source' not in parts):
       self.abort(400, 'state query parameter must include "feature" and "source"')
 
     feature = parts['feature']

@@ -370,7 +370,7 @@ class Handler(webapp2.RequestHandler):
                                      **kwargs)
       if 'callback' in state_obj:
         # call super.redirect so the callback url is unmodified
-        super(Handler, self).redirect(state_obj['callback'])
+        super(Handler, self).redirect(str(state_obj['callback']))
       else:
         self.redirect(source.bridgy_url(self) if source else '/')
       return source
@@ -384,18 +384,16 @@ class Handler(webapp2.RequestHandler):
                           source_cls.AS_CLASS.NAME)
         self.redirect_home_or_user_page(state)
 
-  def construct_state_param(self, state=None):
-    # if the incoming request contains feature and callback, we'll construct
-    # the state for them
+  def construct_state_param_for_add(self, state=None, feature=None,
+                                    callback=None):
+    """Construct the state parameter if one isn't explicitly passed in
+    """
     if not state:
-      feature = self.request.get('feature')
-      callback = self.request.get('callback')
-      if feature and callback:
-        state = self.encode_state_parameter({
-          'operation': 'add',
-          'feature': feature,
-          'callback': callback,
-        })
+      state = self.encode_state_parameter({
+        'operation': 'add',
+        'feature': feature or self.request.get('feature'),
+        'callback': callback or self.request.get('callback'),
+      })
     return state
 
   def encode_state_parameter(self, obj):
@@ -404,33 +402,24 @@ class Handler(webapp2.RequestHandler):
     so that it can be safely included as a query string parameter.
 
     Args:
-      obj: a string or JSON-serializable dict
+      obj: a JSON-serializable dict
 
     Returns: a string
     """
-    if isinstance(obj, dict):
-      return json.dumps(obj)
-    return obj or ''
+    return json.dumps(trim_nulls(obj))
 
   def decode_state_parameter(self, state):
     """The state parameter is passed to various source authorization
-    endpoints and returned in a callback. This decodes an optionally
-    JSON-serialized string and returns a dict. In the most common case,
-    the state is simply the feature being added (e.g., 'listen') and
-    will be decoded as a dict {'feature': 'listen'}.
+    endpoints and returned in a callback. This decodes a
+    JSON-serialized string and returns a dict.
 
     Args:
-      state: a string, either the name of a feature or a a JSON-encoded dict
+      state: a string (JSON-serialized dict)
 
     Returns: a dict containing operation, feature, and possibly other fields
     """
-    if state and state.startswith('{'):
-      state = json.loads(state)
-    if isinstance(state, dict):
-      return state
-    if isinstance(state, basestring):
-      return {'feature': state}
-    return {'feature': ''}
+    logging.debug('decoding state "%s"' % state)
+    return json.loads(state) if state else {}
 
   def redirect_home_or_user_page(self, state):
     redirect_to = '/'
