@@ -101,14 +101,10 @@ class StartHandler(util.Handler):
   """
   def post(self):
     class DelegateHandler(oauth_twitter.StartHandler, util.Handler):
-      """Delegate for the actual authentication processing
-      """
+      """Delegate for the actual authentication processing"""
       def redirect_url(self, state=None):
         state = self.construct_state_param_for_add(state)
-        logging.debug('REDIRECTING WITH STATE %s' % state)
         return super(DelegateHandler, self).redirect_url(state)
-
-
     # pass explicit 'write' instead of None for publish so that oauth-dropins
     # (and tweepy) don't use signin_with_twitter ie /authorize. this works
     # around a twitter API bug: https://dev.twitter.com/discussions/21281

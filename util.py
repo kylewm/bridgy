@@ -406,7 +406,7 @@ class Handler(webapp2.RequestHandler):
 
     Returns: a string
     """
-    return json.dumps(trim_nulls(obj))
+    return json.dumps(trim_nulls(obj), separators=(',',':'), sort_keys=True)
 
   def decode_state_parameter(self, state):
     """The state parameter is passed to various source authorization
